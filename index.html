@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>CSV Editor</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top left,
+        #38bdf8 0,
+        #a7f3d0 30%,
+        #22c55e 50%,
+        #0ea5e9 75%,
+        #1d4ed8 100%);
+      color: #111827;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 960px;
+      padding: 24px;
+    }
+
+    .card {
+      position: relative;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.4); /* ~60% transparan */
+      border-radius: 24px;
+      border: 2px solid #d4af37; /* emas */
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+      padding: 28px 32px 24px;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.5),
+        rgba(255, 255, 255, 0.08));
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .card-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    h1, h2 {
+      margin: 0 0 10px;
+      letter-spacing: 0.02em;
+    }
+
+    h1 {
+      font-size: 30px;
+      font-weight: 700;
+      color: #0b1120;
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0b1120;
+    }
+
+    .hidden { display: none; }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+
+    .field-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .field-row.inline { /* untuk baris tombol Tambah & Hapus */
+      justify-content: flex-start;
+    }
+
+    select,
+    input[type="password"] {
+      border-radius: 999px;
+      border: 2px solid #d4af37;
+      padding: 10px 16px;
+      font-size: 15px;
+      outline: none;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+        0 0 0 1px #d4af37;
+      min-width: 240px;
+      flex: 1 1 260px;
+      transition: box-shadow 0.18s ease, transform 0.12s ease,
+                  background 0.18s ease, border-color 0.18s ease;
+    }
+
+    select:focus,
+    input[type="password"]:focus {
+      border-color: #d4af37;
+      box-shadow:
+        0 0 0 2px #d4af37,
+        0 12px 28px rgba(34, 197, 94, 0.25);
+      background: rgba(255, 255, 255, 0.95);
+      transform: translateY(-1px);
+    }
+
+    .btn {
+      position: relative;
+      border-radius: 999px;
+      border: 2px solid #d4af37;
+      background: radial-gradient(circle at top left,
+        rgba(255, 255, 255, 0.95),
+        rgba(255, 255, 255, 0.15));
+      padding: 9px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #111827;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow:
+        0 12px 28px rgba(15, 23, 42, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+      transition: transform 0.12s ease, box-shadow 0.18s ease,
+                  background 0.18s ease, filter 0.18s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      text-align: center;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 18px 40px rgba(15, 23, 42, 0.32),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.85);
+      filter: brightness(1.05);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow:
+        0 8px 20px rgba(15, 23, 42, 0.22),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+      filter: brightness(0.97);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0ea5e9, #22c55e);
+      color: #f9fafb;
+      border-color: #d4af37;
+      box-shadow:
+        0 16px 34px rgba(14, 165, 233, 0.55),
+        0 0 0 1px #d4af37;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0284c7, #16a34a);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      color: #f9fafb;
+      border-color: #d4af37;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .toolbar-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toolbar-row .btn {
+      flex: 1;
+    }
+
+    .toolbar-row-middle {
+      justify-content: space-between;
+    }
+
+    .toolbar-row-middle .btn:nth-child(2) {
+      /* + Baris di tengah */
+      flex: 1.1;
+    }
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.25);
+      border: 2px solid #d4af37;
+      font-size: 14px;
+      min-width: 600px;
+    }
+
+    th, td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #d4af37;
+    }
+
+    th {
+      background: linear-gradient(135deg,
+        rgba(14, 165, 233, 0.16),
+        rgba(45, 212, 191, 0.14));
+      font-weight: 600;
+      text-align: left;
+      color: #111827;
+      border-bottom: 2px solid #d4af37;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    td[contenteditable="true"] {
+      background: rgba(248, 250, 252, 0.98);
+    }
+
+    td[contenteditable="true"]:hover {
+      background: rgba(219, 234, 254, 0.98);
+    }
+
+    .status {
+      font-size: 13px;
+      color: #374151;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      padding: 8px 14px;
+      display: inline-flex;
+      margin-top: 12px;
+      max-width: 100%;
+      white-space: pre-line;
+      border: 2px solid #d4af37;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+    }
+
+    .status-accent { border-color: #d4af37; }
+
+    .file-subtitle {
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 12px;
+    }
+
+    /* =============== RESPONSIVE =============== */
+
+    @media (max-width: 768px) {
+      body { align-items: flex-start; }
+      .app-shell { padding: 16px; }
+
+      .card {
+        padding: 20px 16px 18px;
+        border-radius: 20px;
+      }
+
+      h1 { font-size: 26px; }
+      h2 { font-size: 22px; }
+
+      /* Select & input full width */
+      .field-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .field-row.inline {
+        flex-direction: row;         /* Tambah & Hapus tetap 1 baris */
+        align-items: center;
+      }
+
+      select,
+      input[type="password"] {
+        width: 100%;
+        flex: none;
+      }
+
+      .toolbar-row {
+        flex-wrap: nowrap;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .toolbar-row .btn {
+        width: auto;
+      }
+
+      table {
+        font-size: 13px;
+        min-width: 480px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body { font-size: 15px; }
+      h1 { font-size: 24px; }
+      h2 { font-size: 20px; }
+
+      .card {
+        padding: 18px 12px 16px;
+      }
+
+      table {
+        font-size: 12px;
+        min-width: 420px;
+      }
+
+      th, td {
+        padding: 6px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="card">
+    <div class="card-inner">
+
+      <!-- ===============================
+           HALAMAN AWAL
+      ================================== -->
+      <div id="start-screen">
+        <h1>CSV Editor</h1>
+
+        <label for="csvSelect">File CSV GitHub</label>
+        <div class="field-row">
+          <select id="csvSelect">
+            <option value="">-- Pilih file CSV --</option>
+          </select>
+        </div>
+
+        <!-- Tambah & Hapus dalam 1 baris -->
+        <div class="field-row inline">
+          <button class="btn" id="btnAddCsv">＋ Tambah</button>
+          <button class="btn btn-danger" id="btnRemoveCsv">✕ Hapus</button>
+        </div>
+
+        <label for="ghToken">Token GitHub</label>
+        <input type="password" id="ghToken" placeholder="Personal Access Token" />
+
+        <div style="margin-top: 18px;">
+          <button class="btn btn-primary" id="btnLoad">➡️ Buka & Edit CSV</button>
+        </div>
+
+        <div id="startStatus" class="status" style="display:none;"></div>
+      </div>
+
+      <!-- ===============================
+           HALAMAN EDITOR
+      ================================== -->
+      <div id="editor-screen" class="hidden">
+        <h2 id="editTitle">NamaFile.csv</h2>
+        <div id="editSubtitle" class="file-subtitle"></div>
+
+        <div class="toolbar">
+          <!-- Baris 1: OK, + Baris, Refresh -->
+          <div class="toolbar-row toolbar-row-middle">
+            <button class="btn" id="btnEdit">OK</button>
+            <button class="btn" id="btnAddRow">＋ Baris</button>
+            <button class="btn" id="btnRefresh">⟳ Refresh</button>
+          </div>
+
+          <!-- Baris 2: Simpan & Keluar -->
+          <div class="toolbar-row">
+            <button class="btn btn-primary" id="btnSave">💾 Simpan</button>
+            <button class="btn btn-danger" id="btnExit">Keluar</button>
+          </div>
+        </div>
+
+        <div id="tableContainer"></div>
+
+        <div id="editStatus" class="status" style="display:none;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===============================
+   ELEMENT DOM
+================================ */
+const csvSelect    = document.getElementById("csvSelect");
+const tokenInput   = document.getElementById("ghToken");
+const btnLoad      = document.getElementById("btnLoad");
+const btnAddCsv    = document.getElementById("btnAddCsv");
+const btnRemoveCsv = document.getElementById("btnRemoveCsv");
+
+const btnEdit    = document.getElementById("btnEdit");
+const btnAddRow  = document.getElementById("btnAddRow");
+const btnRefresh = document.getElementById("btnRefresh");
+const btnSave    = document.getElementById("btnSave");
+const btnExit    = document.getElementById("btnExit");
+
+const startScreen  = document.getElementById("start-screen");
+const editorScreen = document.getElementById("editor-screen");
+
+const startStatus = document.getElementById("startStatus");
+const editStatus  = document.getElementById("editStatus");
+const tableContainer = document.getElementById("tableContainer");
+const editTitle      = document.getElementById("editTitle");
+const editSubtitle   = document.getElementById("editSubtitle");
+
+/* ===============================
+   VARIABEL & LOCALSTORAGE
+================================ */
+let csvData = [];
+let githubInfo = null;
+let isEditing = true;
+
+let csvEntries = []; // { name, url }
+
+const KEY_CSV   = "csvEntries";
+const KEY_TOKEN = "githubToken";
+
+function showStartStatus(msg, accent = false) {
+  startStatus.textContent = msg;
+  startStatus.style.display = msg ? "inline-flex" : "none";
+  startStatus.classList.toggle("status-accent", accent);
+}
+
+function showEditStatus(msg, accent = false) {
+  editStatus.textContent = msg;
+  editStatus.style.display = msg ? "inline-flex" : "none";
+  editStatus.classList.toggle("status-accent", accent);
+}
+
+/* ---- CSV entries in browser ---- */
+function loadCsvEntries() {
+  try {
+    const raw = localStorage.getItem(KEY_CSV);
+    csvEntries = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(csvEntries)) csvEntries = [];
+  } catch {
+    csvEntries = [];
+  }
+}
+
+function saveCsvEntries() {
+  localStorage.setItem(KEY_CSV, JSON.stringify(csvEntries));
+}
+
+function renderCsvSelect() {
+  csvSelect.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "-- Pilih file CSV --";
+  csvSelect.appendChild(placeholder);
+
+  csvEntries.forEach(entry => {
+    const opt = document.createElement("option");
+    opt.value = entry.url;
+    opt.textContent = entry.name;
+    csvSelect.appendChild(opt);
+  });
+}
+
+/* ---- Token in browser ---- */
+function loadToken() {
+  const saved = localStorage.getItem(KEY_TOKEN);
+  if (saved) tokenInput.value = saved;
+}
+
+tokenInput.addEventListener("input", () => {
+  localStorage.setItem(KEY_TOKEN, tokenInput.value);
+});
+
+/* ===============================
+   TAMBAH & HAPUS PILIHAN CSV
+================================ */
+btnAddCsv.addEventListener("click", () => {
+  const name = prompt("Nama tampilan di menu (misal: 'Alamat', 'Data Urban', dll):");
+  if (!name || !name.trim()) return;
+
+  const url = prompt("URL CSV GitHub (boleh format blob atau raw):");
+  if (!url || !url.trim()) return;
+
+  const entry = { name: name.trim(), url: url.trim() };
+  csvEntries.push(entry);
+  saveCsvEntries();
+  renderCsvSelect();
+  csvSelect.value = entry.url;
+  showStartStatus("Pilihan CSV baru ditambahkan.", true);
+});
+
+btnRemoveCsv.addEventListener("click", () => {
+  const currentUrl = csvSelect.value;
+  if (!currentUrl) {
+    alert("Pilih entri yang ingin dihapus.");
+    return;
+  }
+
+  const entry = csvEntries.find(e => e.url === currentUrl);
+  const label = entry ? entry.name : currentUrl;
+  if (!confirm('Hapus "' + label + '" dari daftar?')) return;
+
+  csvEntries = csvEntries.filter(e => e.url !== currentUrl);
+  saveCsvEntries();
+  renderCsvSelect();
+  showStartStatus("Pilihan CSV dihapus.");
+});
+
+/* ===============================
+   PARSE URL GITHUB
+================================ */
+function parseGithubUrl(url) {
+  const u = new URL(url);
+  const p = u.pathname.split("/").filter(Boolean);
+
+  if (u.hostname === "raw.githubusercontent.com") {
+    if (p.length < 4) throw Error("URL raw GitHub tidak lengkap.");
+    const [owner, repo, branch, ...rest] = p;
+    return {
+      owner,
+      repo,
+      branch,
+      path: rest.join("/"),
+      rawUrl: url,
+      apiUrl: `https://api.github.com/repos/${owner}/${repo}/contents/${rest.join("/")}`
+    };
+  }
+
+  if (u.hostname === "github.com") {
+    if (p.length < 4) throw Error("URL GitHub tidak lengkap.");
+    const owner = p[0];
+    const repo  = p[1];
+    const blobIdx = p.indexOf("blob");
+    if (blobIdx === -1) throw Error("URL GitHub harus mengandung /blob/branch/path");
+
+    const branch = p[blobIdx + 1];
+    const path   = p.slice(blobIdx + 2).join("/");
+
+    return {
+      owner,
+      repo,
+      branch,
+      path,
+      rawUrl: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`,
+      apiUrl: `https://api.github.com/repos/${owner}/${repo}/contents/${path}`
+    };
+  }
+
+  throw Error("URL bukan GitHub.");
+}
+
+/* ===============================
+   CSV HELPER
+================================ */
+function parseCSV(text) {
+  return text.split(/\r?\n/).filter(Boolean).map(r => r.split(","));
+}
+function toCSV(data) {
+  return data.map(r => r.join(",")).join("\n");
+}
+
+/* ===============================
+   RENDER TABEL
+================================ */
+function renderTable() {
+  if (!csvData.length) {
+    tableContainer.innerHTML = "<p>Tidak ada data.</p>";
+    return;
+  }
+
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const tbody = document.createElement("tbody");
+
+  const header = document.createElement("tr");
+  csvData[0].forEach(h => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    header.appendChild(th);
+  });
+  thead.appendChild(header);
+
+  for (let i = 1; i < csvData.length; i++) {
+    const tr = document.createElement("tr");
+    csvData[i].forEach(cell => {
+      const td = document.createElement("td");
+      td.contentEditable = isEditing;
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(thead);
+  table.appendChild(tbody);
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "table-wrapper";
+  wrapper.appendChild(table);
+
+  tableContainer.innerHTML = "";
+  tableContainer.appendChild(wrapper);
+}
+
+function readTableBack() {
+  const table = tableContainer.querySelector("table");
+  if (!table) { csvData = []; return; }
+  const rows = [...table.querySelectorAll("tr")];
+  csvData = rows.map(r => [...r.children].map(c => c.textContent.trim()));
+}
+
+/* ===============================
+   LOAD CSV DARI PILIHAN
+================================ */
+btnLoad.addEventListener("click", async () => {
+  const selectedUrl = csvSelect.value;
+  showStartStatus("");
+
+  if (!selectedUrl) {
+    showStartStatus("Pilih file CSV terlebih dahulu.");
+    return;
+  }
+
+  try {
+    githubInfo = parseGithubUrl(selectedUrl);
+
+    showStartStatus("Mengambil CSV dari GitHub...", true);
+    const res = await fetch(githubInfo.rawUrl);
+    if (!res.ok) throw Error("Gagal mengambil CSV (status " + res.status + ")");
+
+    csvData = parseCSV(await res.text());
+
+    startScreen.classList.add("hidden");
+    editorScreen.classList.remove("hidden");
+
+    isEditing = true;
+    btnEdit.textContent = "OK";
+
+    const fileName = githubInfo.path.split("/").pop();
+    editTitle.textContent = fileName || githubInfo.path || "File CSV";
+    editSubtitle.textContent = githubInfo.repo + "/" + githubInfo.path;
+
+    renderTable();
+    showEditStatus("CSV siap diedit.", true);
+  } catch (e) {
+    showStartStatus("Error: " + e.message);
+  }
+});
+
+/* ===============================
+   REFRESH CSV (SYNC GITHUB)
+================================ */
+btnRefresh.addEventListener("click", async () => {
+  if (!githubInfo) {
+    showEditStatus("Belum ada file yang dimuat.");
+    return;
+  }
+  if (!confirm("Perubahan lokal yang belum disimpan akan hilang. Lanjutkan refresh?")) return;
+
+  try {
+    showEditStatus("Refresh dari GitHub...");
+    const res = await fetch(githubInfo.rawUrl);
+    if (!res.ok) throw Error("Gagal refresh (status " + res.status + ")");
+    csvData = parseCSV(await res.text());
+    renderTable();
+    showEditStatus("Sudah sinkron dengan GitHub.", true);
+  } catch (e) {
+    showEditStatus("Error: " + e.message);
+  }
+});
+
+/* ===============================
+   TOGGLE EDIT MODE
+================================ */
+btnEdit.addEventListener("click", () => {
+  if (!csvData.length) return;
+  readTableBack();
+  isEditing = !isEditing;
+  btnEdit.textContent = isEditing ? "OK" : "Edit";
+  renderTable();
+  showEditStatus(isEditing ? "Mode edit aktif." : "Mode lihat saja.");
+});
+
+/* ===============================
+   TAMBAH BARIS
+================================ */
+btnAddRow.addEventListener("click", () => {
+  if (!csvData.length) {
+    showEditStatus("Belum ada data.");
+    return;
+  }
+  readTableBack();
+  csvData.push(new Array(csvData[0].length).fill(""));
+  renderTable();
+  showEditStatus("Baris baru ditambahkan.", true);
+});
+
+/* ===============================
+   SIMPAN CSV KE GITHUB
+================================ */
+btnSave.addEventListener("click", async () => {
+  const token = tokenInput.value.trim();
+  if (!token) {
+    showEditStatus("Isi token GitHub dulu.");
+    return;
+  }
+  localStorage.setItem(KEY_TOKEN, token);
+
+  if (!githubInfo) {
+    showEditStatus("Belum ada file yang dimuat.");
+    return;
+  }
+
+  readTableBack();
+  const csvText = toCSV(csvData);
+  const base64 = btoa(unescape(encodeURIComponent(csvText)));
+
+  try {
+    showEditStatus("Mengambil SHA file...");
+    const shaRes = await fetch(githubInfo.apiUrl, {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (!shaRes.ok) throw Error("Gagal ambil info file (status " + shaRes.status + ")");
+    const shaJson = await shaRes.json();
+
+    showEditStatus("Mengirim update ke GitHub...");
+    const putRes = await fetch(githubInfo.apiUrl, {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "Update CSV via web",
+        content: base64,
+        sha: shaJson.sha
+      })
+    });
+
+    if (!putRes.ok) throw Error("Gagal commit (status " + putRes.status + ")");
+    showEditStatus("Berhasil menyimpan ke GitHub. ✔️", true);
+  } catch (e) {
+    showEditStatus("Error: " + e.message);
+  }
+});
+
+/* ===============================
+   KELUAR
+================================ */
+btnExit.addEventListener("click", () => {
+  location.reload();
+});
+
+/* ===============================
+   INIT
+================================ */
+document.addEventListener("DOMContentLoaded", () => {
+  loadCsvEntries();
+  renderCsvSelect();
+  loadToken();
+});
+</script>
+</body>
+</html>
