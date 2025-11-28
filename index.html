@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CSV Editor</title>
   <style>
     * { box-sizing: border-box; }
@@ -93,8 +94,8 @@
       margin-bottom: 18px;
     }
 
-    .field-row.inline { /* untuk baris tombol Tambah & Hapus */
-      justify-content: flex-start;
+    .field-row.inline {
+      justify-content: flex-start; /* desktop: 1 baris */
     }
 
     select,
@@ -198,13 +199,7 @@
       justify-content: space-between;
     }
 
-    .toolbar-row .btn {
-      flex: 1;
-    }
-
-    .toolbar-row-middle {
-      justify-content: space-between;
-    }
+    .toolbar-row .btn { flex: 1; }
 
     .toolbar-row-middle .btn:nth-child(2) {
       /* + Baris di tengah */
@@ -245,13 +240,8 @@
 
     tr:last-child td { border-bottom: none; }
 
-    td[contenteditable="true"] {
-      background: rgba(248, 250, 252, 0.98);
-    }
-
-    td[contenteditable="true"]:hover {
-      background: rgba(219, 234, 254, 0.98);
-    }
+    td[contenteditable="true"] { background: rgba(248, 250, 252, 0.98); }
+    td[contenteditable="true"]:hover { background: rgba(219, 234, 254, 0.98); }
 
     .status {
       font-size: 13px;
@@ -278,26 +268,34 @@
     /* =============== RESPONSIVE =============== */
 
     @media (max-width: 768px) {
-      body { align-items: flex-start; }
-      .app-shell { padding: 16px; }
+      body {
+        align-items: flex-start;
+      }
+
+      .app-shell {
+        padding: 12px;
+      }
 
       .card {
-        padding: 20px 16px 18px;
+        padding: 18px 14px 16px;
         border-radius: 20px;
+        width: 100%;
+        max-width: 100%;
       }
 
       h1 { font-size: 26px; }
       h2 { font-size: 22px; }
 
-      /* Select & input full width */
+      /* semua input full width */
       .field-row {
         flex-direction: column;
         align-items: stretch;
       }
 
+      /* Tambah & Hapus di HP: vertikal full-width */
       .field-row.inline {
-        flex-direction: row;         /* Tambah & Hapus tetap 1 baris */
-        align-items: center;
+        flex-direction: column;
+        align-items: stretch;
       }
 
       select,
@@ -307,7 +305,7 @@
       }
 
       .toolbar-row {
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
       }
 
       .btn {
@@ -331,7 +329,7 @@
       h2 { font-size: 20px; }
 
       .card {
-        padding: 18px 12px 16px;
+        padding: 16px 10px 14px;
       }
 
       table {
@@ -363,7 +361,7 @@
           </select>
         </div>
 
-        <!-- Tambah & Hapus dalam 1 baris -->
+        <!-- Tambah & Hapus -->
         <div class="field-row inline">
           <button class="btn" id="btnAddCsv">＋ Tambah</button>
           <button class="btn btn-danger" id="btnRemoveCsv">✕ Hapus</button>
@@ -391,7 +389,7 @@
           <div class="toolbar-row toolbar-row-middle">
             <button class="btn" id="btnEdit">OK</button>
             <button class="btn" id="btnAddRow">＋ Baris</button>
-            <button class="btn" id="btnRefresh">⟳ Refresh</button>
+            <button class="btn" id="btnRefresh">Refresh</button>
           </div>
 
           <!-- Baris 2: Simpan & Keluar -->
@@ -411,9 +409,6 @@
 </div>
 
 <script>
-/* ===============================
-   ELEMENT DOM
-================================ */
 const csvSelect    = document.getElementById("csvSelect");
 const tokenInput   = document.getElementById("ghToken");
 const btnLoad      = document.getElementById("btnLoad");
@@ -435,13 +430,9 @@ const tableContainer = document.getElementById("tableContainer");
 const editTitle      = document.getElementById("editTitle");
 const editSubtitle   = document.getElementById("editSubtitle");
 
-/* ===============================
-   VARIABEL & LOCALSTORAGE
-================================ */
 let csvData = [];
 let githubInfo = null;
 let isEditing = true;
-
 let csvEntries = []; // { name, url }
 
 const KEY_CSV   = "csvEntries";
@@ -459,15 +450,13 @@ function showEditStatus(msg, accent = false) {
   editStatus.classList.toggle("status-accent", accent);
 }
 
-/* ---- CSV entries in browser ---- */
+/* CSV list in browser */
 function loadCsvEntries() {
   try {
     const raw = localStorage.getItem(KEY_CSV);
     csvEntries = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(csvEntries)) csvEntries = [];
-  } catch {
-    csvEntries = [];
-  }
+  } catch { csvEntries = []; }
 }
 
 function saveCsvEntries() {
@@ -489,19 +478,16 @@ function renderCsvSelect() {
   });
 }
 
-/* ---- Token in browser ---- */
+/* Token in browser */
 function loadToken() {
   const saved = localStorage.getItem(KEY_TOKEN);
   if (saved) tokenInput.value = saved;
 }
-
 tokenInput.addEventListener("input", () => {
   localStorage.setItem(KEY_TOKEN, tokenInput.value);
 });
 
-/* ===============================
-   TAMBAH & HAPUS PILIHAN CSV
-================================ */
+/* Tambah & hapus pilihan CSV */
 btnAddCsv.addEventListener("click", () => {
   const name = prompt("Nama tampilan di menu (misal: 'Alamat', 'Data Urban', dll):");
   if (!name || !name.trim()) return;
@@ -519,10 +505,7 @@ btnAddCsv.addEventListener("click", () => {
 
 btnRemoveCsv.addEventListener("click", () => {
   const currentUrl = csvSelect.value;
-  if (!currentUrl) {
-    alert("Pilih entri yang ingin dihapus.");
-    return;
-  }
+  if (!currentUrl) { alert("Pilih entri yang ingin dihapus."); return; }
 
   const entry = csvEntries.find(e => e.url === currentUrl);
   const label = entry ? entry.name : currentUrl;
@@ -534,9 +517,7 @@ btnRemoveCsv.addEventListener("click", () => {
   showStartStatus("Pilihan CSV dihapus.");
 });
 
-/* ===============================
-   PARSE URL GITHUB
-================================ */
+/* Parse URL GitHub */
 function parseGithubUrl(url) {
   const u = new URL(url);
   const p = u.pathname.split("/").filter(Boolean);
@@ -545,9 +526,7 @@ function parseGithubUrl(url) {
     if (p.length < 4) throw Error("URL raw GitHub tidak lengkap.");
     const [owner, repo, branch, ...rest] = p;
     return {
-      owner,
-      repo,
-      branch,
+      owner, repo, branch,
       path: rest.join("/"),
       rawUrl: url,
       apiUrl: `https://api.github.com/repos/${owner}/${repo}/contents/${rest.join("/")}`
@@ -560,15 +539,11 @@ function parseGithubUrl(url) {
     const repo  = p[1];
     const blobIdx = p.indexOf("blob");
     if (blobIdx === -1) throw Error("URL GitHub harus mengandung /blob/branch/path");
-
     const branch = p[blobIdx + 1];
     const path   = p.slice(blobIdx + 2).join("/");
 
     return {
-      owner,
-      repo,
-      branch,
-      path,
+      owner, repo, branch, path,
       rawUrl: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`,
       apiUrl: `https://api.github.com/repos/${owner}/${repo}/contents/${path}`
     };
@@ -577,9 +552,7 @@ function parseGithubUrl(url) {
   throw Error("URL bukan GitHub.");
 }
 
-/* ===============================
-   CSV HELPER
-================================ */
+/* CSV helper */
 function parseCSV(text) {
   return text.split(/\r?\n/).filter(Boolean).map(r => r.split(","));
 }
@@ -587,9 +560,7 @@ function toCSV(data) {
   return data.map(r => r.join(",")).join("\n");
 }
 
-/* ===============================
-   RENDER TABEL
-================================ */
+/* Render table */
 function renderTable() {
   if (!csvData.length) {
     tableContainer.innerHTML = "<p>Tidak ada data.</p>";
@@ -637,9 +608,7 @@ function readTableBack() {
   csvData = rows.map(r => [...r.children].map(c => c.textContent.trim()));
 }
 
-/* ===============================
-   LOAD CSV DARI PILIHAN
-================================ */
+/* Load CSV */
 btnLoad.addEventListener("click", async () => {
   const selectedUrl = csvSelect.value;
   showStartStatus("");
@@ -675,14 +644,9 @@ btnLoad.addEventListener("click", async () => {
   }
 });
 
-/* ===============================
-   REFRESH CSV (SYNC GITHUB)
-================================ */
+/* Refresh CSV */
 btnRefresh.addEventListener("click", async () => {
-  if (!githubInfo) {
-    showEditStatus("Belum ada file yang dimuat.");
-    return;
-  }
+  if (!githubInfo) { showEditStatus("Belum ada file yang dimuat."); return; }
   if (!confirm("Perubahan lokal yang belum disimpan akan hilang. Lanjutkan refresh?")) return;
 
   try {
@@ -697,9 +661,7 @@ btnRefresh.addEventListener("click", async () => {
   }
 });
 
-/* ===============================
-   TOGGLE EDIT MODE
-================================ */
+/* Toggle edit mode */
 btnEdit.addEventListener("click", () => {
   if (!csvData.length) return;
   readTableBack();
@@ -709,35 +671,22 @@ btnEdit.addEventListener("click", () => {
   showEditStatus(isEditing ? "Mode edit aktif." : "Mode lihat saja.");
 });
 
-/* ===============================
-   TAMBAH BARIS
-================================ */
+/* Add row */
 btnAddRow.addEventListener("click", () => {
-  if (!csvData.length) {
-    showEditStatus("Belum ada data.");
-    return;
-  }
+  if (!csvData.length) { showEditStatus("Belum ada data."); return; }
   readTableBack();
   csvData.push(new Array(csvData[0].length).fill(""));
   renderTable();
   showEditStatus("Baris baru ditambahkan.", true);
 });
 
-/* ===============================
-   SIMPAN CSV KE GITHUB
-================================ */
+/* Save to GitHub */
 btnSave.addEventListener("click", async () => {
   const token = tokenInput.value.trim();
-  if (!token) {
-    showEditStatus("Isi token GitHub dulu.");
-    return;
-  }
+  if (!token) { showEditStatus("Isi token GitHub dulu."); return; }
   localStorage.setItem(KEY_TOKEN, token);
 
-  if (!githubInfo) {
-    showEditStatus("Belum ada file yang dimuat.");
-    return;
-  }
+  if (!githubInfo) { showEditStatus("Belum ada file yang dimuat."); return; }
 
   readTableBack();
   const csvText = toCSV(csvData);
@@ -772,16 +721,12 @@ btnSave.addEventListener("click", async () => {
   }
 });
 
-/* ===============================
-   KELUAR
-================================ */
+/* Keluar */
 btnExit.addEventListener("click", () => {
   location.reload();
 });
 
-/* ===============================
-   INIT
-================================ */
+/* INIT */
 document.addEventListener("DOMContentLoaded", () => {
   loadCsvEntries();
   renderCsvSelect();
@@ -789,4 +734,4 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 </body>
-</html>
+          </html>
